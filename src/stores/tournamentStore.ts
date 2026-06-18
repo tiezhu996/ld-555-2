@@ -9,6 +9,7 @@ interface TournamentState {
   loadTournaments: () => Promise<void>;
   createTournament: (tournament: Tournament) => Promise<void>;
   registerTeam: (tournamentId: string, teamId: string) => Promise<void>;
+  updateBracketScore: (matchId: string, scoreA: number, scoreB: number) => void;
 }
 
 export const useTournamentStore = create<TournamentState>((set, get) => ({
@@ -32,5 +33,21 @@ export const useTournamentStore = create<TournamentState>((set, get) => ({
     if (!tournament || tournament.teams.includes(teamId)) return;
     const saved = await withFriendlyError(() => tournamentDb.save({ ...tournament, teams: [...tournament.teams, teamId] }));
     set((state) => ({ tournaments: state.tournaments.map((item) => (item.id === saved.id ? saved : item)) }));
+  },
+  updateBracketScore: (matchId, scoreA, scoreB) => {
+    set((state) => ({
+      tournaments: state.tournaments.map((tournament) => ({
+        ...tournament,
+        bracket: {
+          ...tournament.bracket,
+          rounds: tournament.bracket.rounds.map((round) => ({
+            ...round,
+            matches: round.matches.map((match) =>
+              match.id === matchId ? { ...match, scoreA, scoreB } : match
+            ),
+          })),
+        },
+      })),
+    }));
   },
 }));

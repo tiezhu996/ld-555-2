@@ -8,6 +8,7 @@ interface MatchState {
   loading: boolean;
   loadMatches: () => Promise<void>;
   recordResult: (match: Match) => Promise<void>;
+  updateMatchScore: (matchId: string, scoreA: number, scoreB: number) => void;
 }
 
 export const useMatchStore = create<MatchState>((set) => ({
@@ -25,5 +26,12 @@ export const useMatchStore = create<MatchState>((set) => ({
   recordResult: async (match) => {
     const saved = await withFriendlyError(() => matchDb.save(match));
     set((state) => ({ matches: state.matches.map((item) => (item.id === saved.id ? saved : item)) }));
+  },
+  updateMatchScore: (matchId, scoreA, scoreB) => {
+    set((state) => ({
+      matches: state.matches.map((match) =>
+        match.id === matchId ? { ...match, score: { a: scoreA, b: scoreB } } : match
+      ),
+    }));
   },
 }));

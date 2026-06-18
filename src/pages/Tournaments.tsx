@@ -7,12 +7,20 @@ import { gameTitleOptions, TournamentStatus, tournamentStatusOptions, type GameT
 import { useTournament } from '../hooks/useTournament';
 import { formatDate, tournamentFormatLabels, tournamentStatusLabels } from '../utils/format';
 
+const statusPriority: Record<TournamentStatus, number> = {
+  [TournamentStatus.IN_PROGRESS]: 0,
+  [TournamentStatus.REGISTRATION]: 1,
+  [TournamentStatus.FINISHED]: 2,
+};
+
 export function Tournaments() {
   const { tournaments } = useTournament();
   const [params] = useSearchParams();
   const [game, setGame] = useState<GameTitle | 'ALL'>((params.get('game') as GameTitle) || 'ALL');
   const [status, setStatus] = useState<TournamentStatus | 'ALL'>('ALL');
-  const filtered = tournaments.filter((item) => (game === 'ALL' || item.game === game) && (status === 'ALL' || item.status === status));
+  const filtered = tournaments
+    .filter((item) => (game === 'ALL' || item.game === game) && (status === 'ALL' || item.status === status))
+    .sort((a, b) => statusPriority[a.status] - statusPriority[b.status]);
 
   return (
     <motion.div className="page" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
@@ -30,11 +38,25 @@ export function Tournaments() {
       </div>
       <section className="tournament-grid">
         {filtered.map((item, idx) => (
-          <motion.div className="tournament-card" key={item.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.04 }}>
-            <GameTag game={item.game} />
+          <motion.div
+            className={`tournament-card ${item.status === TournamentStatus.IN_PROGRESS ? 'tournament-card--live' : ''}`}
+            key={item.id}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: idx * 0.04 }}
+          >
+            <div className="tournament-card__tags">
+              <GameTag game={item.game} />
+              {item.status === TournamentStatus.IN_PROGRESS && <span className="live-badge">● 直播中</span>}
+            </div>
             <h2>{item.name}</h2>
             <p>{tournamentFormatLabels[item.format]} · {formatDate(item.startDate)} 开赛</p>
-            <div className="stat-line"><span>{item.teams.length}/{item.maxTeams} 队</span><span>{tournamentStatusLabels[item.status]}</span></div>
+            <div className="stat-line">
+              <span>{item.teams.length}/{item.maxTeams} 队</span>
+              <span className={item.status === TournamentStatus.IN_PROGRESS ? 'status-live' : ''}>
+                {tournamentStatusLabels[item.status]}
+              </span>
+            </div>
             <Link className="button" to={`/tournaments/${item.id}`}>查看详情</Link>
           </motion.div>
         ))}
